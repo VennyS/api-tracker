@@ -8,19 +8,20 @@ import (
 )
 
 type Config struct {
-	ServerPort  string
-	MetricsPort string
-	ClickHouse  ClickHouseConfig
-	Prometheus  PrometheusConfig
+	Env         string           `yaml:"env" env:"ENV" env-default:"local"`
+	ServerPort  string           `yaml:"server_port" env:"SERVER_PORT" env-default:"8080"`
+	MetricsPort string           `yaml:"metrics_port" env:"METRICS_PORT" env-default:"9090"`
+	ClickHouse  ClickHouseConfig `yaml:"clickhouse"`
+	Prometheus  PrometheusConfig `yaml:"prometheus"`
 }
 
 type ClickHouseConfig struct {
-	Addr string
-	DB   string
+	Addr string `yaml:"addr" env:"CLICKHOUSE_ADDR" env-default:"localhost:9000"`
+	DB   string `yaml:"db" env:"CLICKHOUSE_DB" env-default:"default"`
 }
 
 type PrometheusConfig struct {
-	Port string
+	Port string `yaml:"port" env:"PROMETHEUS_PORT" env-default:"9091"`
 }
 
 func MustLoad() *Config {
