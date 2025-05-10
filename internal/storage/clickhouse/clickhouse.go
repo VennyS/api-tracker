@@ -13,7 +13,7 @@ type ClickHouseStorage struct {
 	db *sql.DB
 }
 
-func NewClickHouseStorage(cfg config.ClickHouseConfig) (*ClickHouseStorage, error) {
+func New(cfg config.ClickHouseConfig) (*ClickHouseStorage, error) {
 	dsn := fmt.Sprintf("clickhouse://%s?database=%s", cfg.Addr, cfg.DB)
 	db, err := sql.Open("clickhouse", dsn)
 	if err != nil {

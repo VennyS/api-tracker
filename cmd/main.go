@@ -2,9 +2,15 @@ package main
 
 import (
 	"api-tracker/internal/config"
+	"api-tracker/internal/handlers/loghandler"
 	"api-tracker/internal/lib/logger/handlers/slogpretty"
+	"api-tracker/internal/service/logservice"
+	"api-tracker/internal/storage/clickhouse"
 	"log/slog"
+	"net/http"
 	"os"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const (
@@ -17,6 +23,21 @@ func main() {
 	cfg := config.MustLoad()
 
 	log := setupLogger(cfg.Env)
+
+	router := chi.NewRouter()
+
+	clickStorage, err := clickhouse.New(cfg.ClickHouse)
+	if err != nil {
+		panic("Cannot init storage")
+	}
+
+	logSrv := logservice.New(clickStorage)
+
+	logHandler := loghandler.New(logSrv)
+
+	router.Post("/", logHandler.PostLog())
+
+	http.ListenAndServe(":8080", router)
 }
 
 func setupLogger(env string) *slog.Logger {
