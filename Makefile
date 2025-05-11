@@ -12,8 +12,8 @@ build:
 	go build -o $(BINARY_NAME) ./cmd
 
 # Запустить только go-приложение
-run: build
-	./$(BINARY_NAME)
+run:
+	CONFIG_PATH=.env go run cmd/main.go
 
 # Запустить docker-сервисы (без go-приложения)
 up:

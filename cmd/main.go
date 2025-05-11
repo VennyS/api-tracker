@@ -6,6 +6,7 @@ import (
 	"api-tracker/internal/lib/logger/handlers/slogpretty"
 	"api-tracker/internal/service/logservice"
 	"api-tracker/internal/storage/clickhouse"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -22,13 +23,13 @@ const (
 func main() {
 	cfg := config.MustLoad()
 
-	log := setupLogger(cfg.Env)
+	// log := setupLogger(cfg.Env)
 
 	router := chi.NewRouter()
 
 	clickStorage, err := clickhouse.New(cfg.ClickHouse)
 	if err != nil {
-		panic("Cannot init storage")
+		log.Fatalf("Cannot init storage: %s", err)
 	}
 
 	logSrv := logservice.New(clickStorage)
