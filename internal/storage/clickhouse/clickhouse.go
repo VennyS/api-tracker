@@ -4,52 +4,65 @@ import (
 	"api-tracker/internal/config"
 	"api-tracker/internal/domain/models"
 	"context"
-	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
-	_ "github.com/ClickHouse/clickhouse-go/v2"
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 )
 
 type ClickHouseStorage struct {
-	db *sql.DB
+	db  ch.Conn
+	log *slog.Logger
 }
 
-func New(cfg config.ClickHouseConfig) (*ClickHouseStorage, error) {
-	// Формируем DSN в правильном формате
-	hostWithPort := fmt.Sprintf("%s:%d", cfg.Addr, cfg.PortNative)
+func New(cfg config.ClickHouseConfig, log *slog.Logger) (*ClickHouseStorage, error) {
+	const op = "storage.clickhouse.New"
+	log = log.With("op", op)
 
-	dsn := fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s",
-		hostWithPort, // Теперь включает порт
-		cfg.User,
-		cfg.Password,
-		cfg.DB,
-	)
+	addr := fmt.Sprintf("%s:%d", cfg.Addr, cfg.PortNative)
 
-	db, err := sql.Open("clickhouse", dsn)
+	conn, err := ch.Open(&ch.Options{
+		Addr: []string{addr},
+		Auth: ch.Auth{
+			Database: cfg.DB,
+			Username: cfg.User,
+			Password: cfg.Password,
+		},
+		DialTimeout:     5 * time.Second,
+		ConnMaxLifetime: cfg.ConnMaxLifetime,
+		MaxOpenConns:    cfg.MaxOpenConns,
+		MaxIdleConns:    cfg.MaxIdleConns,
+		Settings: map[string]interface{}{
+			"send_logs_level": "trace",
+		},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to open connection: %w", err)
+		log.Error("connection failed", "error", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Настраиваем пул соединений
-	db.SetMaxOpenConns(cfg.MaxOpenConns)
-	db.SetMaxIdleConns(cfg.MaxIdleConns)
-	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
-
-	// Проверяем соединение с таймаутом
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("ping failed: %w", err)
+	if err := conn.Ping(ctx); err != nil {
+		log.Error("ping failed", "error", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &ClickHouseStorage{db: db}, nil
+	log.Info("successfully connected to clickhouse",
+		"addr", addr,
+		"db", cfg.DB,
+	)
+
+	return &ClickHouseStorage{db: conn, log: log}, nil
 }
 
-func (s *ClickHouseStorage) InsertLog(log models.APIRequestLog) error {
+func (s *ClickHouseStorage) InsertLog(ctx context.Context, log models.APIRequestLog) error {
+	const op = "storage.clickhouse.InsertLog"
+	logger := s.log.With("op", op)
+
 	query := `
-		INSERT INTO requests (
+		INSERT INTO api_request_logs (
 			timestamp, 
 			method, 
 			path, 
@@ -61,10 +74,8 @@ func (s *ClickHouseStorage) InsertLog(log models.APIRequestLog) error {
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	_, err := s.db.ExecContext(ctx, query,
+	start := time.Now()
+	if err := s.db.Exec(ctx, query,
 		log.Timestamp,
 		log.Method,
 		log.Path,
@@ -73,11 +84,28 @@ func (s *ClickHouseStorage) InsertLog(log models.APIRequestLog) error {
 		log.IP,
 		log.UserAgent,
 		log.ServiceName,
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to insert log: %w", err)
+	); err != nil {
+		logger.Error("insert failed",
+			"error", err,
+			"method", log.Method,
+			"path", log.Path,
+			"duration", time.Since(start),
+		)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	logger.Debug("log inserted",
+		"method", log.Method,
+		"path", log.Path,
+		"status", log.StatusCode,
+		"duration", time.Since(start),
+	)
+
 	return nil
+}
+
+func (s *ClickHouseStorage) Close() error {
+	const op = "storage.clickhouse.Close"
+	s.log.With("op", op).Info("closing clickhouse connection")
+	return s.db.Close()
 }

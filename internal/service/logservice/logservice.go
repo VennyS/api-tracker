@@ -2,81 +2,119 @@ package logservice
 
 import (
 	"api-tracker/internal/domain/models"
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 )
 
-var ErrInternal = errors.New("internal error")
+var (
+	ErrInternal      = errors.New("internal error")
+	ErrInvalidInput  = errors.New("invalid input data")
+	validHTTPMethods = map[string]bool{
+		http.MethodGet:     true,
+		http.MethodPost:    true,
+		http.MethodPut:     true,
+		http.MethodDelete:  true,
+		http.MethodPatch:   true,
+		http.MethodOptions: true,
+		http.MethodHead:    true,
+	}
+)
 
 type LogRepository interface {
-	InsertLog(log models.APIRequestLog) error
+	InsertLog(context.Context, models.APIRequestLog) error
 }
 
-type logService struct {
-	logRepo LogRepository
+type LogService struct {
+	repo LogRepository
+	log  *slog.Logger
 }
 
-func New(logRepo LogRepository) *logService {
-	return &logService{logRepo: logRepo}
+func New(repo LogRepository, logger *slog.Logger) *LogService {
+	return &LogService{
+		repo: repo,
+		log:  logger.With("component", "logService"),
+	}
 }
 
-func (srv *logService) AddLog(log models.APIRequestLog) error {
+func (s *LogService) AddLog(ctx context.Context, log models.APIRequestLog) error {
+	const op = "logService.AddLog"
+	logger := s.log.With("operation", op)
+
+	// Валидация входных данных
 	if err := validateLog(log); err != nil {
-		return err
+		logger.Warn("validation failed",
+			"error", err,
+			"method", log.Method,
+			"path", log.Path,
+		)
+		return fmt.Errorf("%s: %w: %w", op, ErrInvalidInput, err)
 	}
 
-	if err := srv.logRepo.InsertLog(log); err != nil {
-		return ErrInternal
+	// Установка timestamp по умолчанию
+	if log.Timestamp.IsZero() {
+		log.Timestamp = time.Now()
 	}
+
+	start := time.Now()
+	err := s.repo.InsertLog(ctx, log)
+	duration := time.Since(start)
+
+	if err != nil {
+		logger.Error("failed to insert log",
+			"error", err,
+			"method", log.Method,
+			"path", log.Path,
+			"duration", duration,
+		)
+		return fmt.Errorf("%s: %w", op, ErrInternal)
+	}
+
+	logger.Debug("log successfully added",
+		"method", log.Method,
+		"path", log.Path,
+		"status", log.StatusCode,
+		"duration", duration,
+	)
 
 	return nil
 }
 
 func validateLog(log models.APIRequestLog) error {
-	// Обязательные поля
+	var validationErrors []string
+
 	if log.Method == "" {
-		return errors.New("method is required")
+		validationErrors = append(validationErrors, "method is required")
+	} else if !validHTTPMethods[strings.ToUpper(log.Method)] {
+		validationErrors = append(validationErrors, fmt.Sprintf("invalid HTTP method: %s", log.Method))
 	}
 
 	if log.Path == "" {
-		return errors.New("path is required")
+		validationErrors = append(validationErrors, "path is required")
 	}
 
 	if log.ServiceName == "" {
-		return errors.New("service name is required")
+		validationErrors = append(validationErrors, "service name is required")
 	}
 
-	// Валидный HTTP-метод
-	validMethods := map[string]bool{
-		"GET": true, "POST": true, "PUT": true, "DELETE": true,
-		"PATCH": true, "OPTIONS": true, "HEAD": true,
-	}
-	if !validMethods[strings.ToUpper(log.Method)] {
-		return fmt.Errorf("invalid HTTP method: %s", log.Method)
-	}
-
-	// Статус-код в пределах допустимого HTTP
 	if log.StatusCode < 100 || log.StatusCode > 599 {
-		return fmt.Errorf("invalid HTTP status code: %d", log.StatusCode)
+		validationErrors = append(validationErrors, fmt.Sprintf("invalid HTTP status code: %d", log.StatusCode))
 	}
 
-	// Латентность не может быть отрицательной
 	if log.LatencyMs < 0 {
-		return errors.New("latency must be non-negative")
+		validationErrors = append(validationErrors, "latency must be non-negative")
 	}
 
-	// IP можно просто проверить на пустоту (глубокая валидация опциональна)
 	if strings.TrimSpace(log.IP) == "" {
-		return errors.New("IP is required")
+		validationErrors = append(validationErrors, "IP is required")
 	}
 
-	// Можно добавить лёгкую проверку формата IP (если хочешь, скажу как через net.ParseIP)
-
-	// Таймстемп — если нулевой, можно выставить текущий
-	if log.Timestamp.IsZero() {
-		log.Timestamp = time.Now()
+	if len(validationErrors) > 0 {
+		return fmt.Errorf("%s", strings.Join(validationErrors, "; "))
 	}
 
 	return nil
