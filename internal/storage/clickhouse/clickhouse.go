@@ -41,5 +41,6 @@ func (s *ClickHouseStorage) InsertLog(log models.APIRequestLog) error {
 		log.UserAgent,
 		log.ServiceName,
 	)
+	fmt.Println(err)
 	return err
 }

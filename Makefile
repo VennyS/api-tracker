@@ -37,3 +37,6 @@ clean:
 
 # Полная перезапуск (пересборка всех)
 restart: down clean build up run
+
+migrate:
+	go run cmd/migrate/main.go -config=.env
