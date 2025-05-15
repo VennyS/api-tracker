@@ -30,6 +30,7 @@ func New(logSrv LogService, logger *slog.Logger) *logHandler {
 
 func (h *logHandler) PostLog() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		var logRequest models.APIRequestLog
 
 		if err := json.NewDecoder(r.Body).Decode(&logRequest); err != nil {
@@ -58,6 +59,7 @@ func (h *logHandler) PostLog() http.HandlerFunc {
 			"status_code", logRequest.StatusCode,
 		)
 		sendMessage(w, r, "ok", http.StatusOK)
+
 	}
 }
 

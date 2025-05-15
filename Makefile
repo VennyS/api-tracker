@@ -36,7 +36,7 @@ clean:
 	rm -f $(BINARY_NAME)
 
 # Полная перезапуск (пересборка всех)
-restart: down clean build up run
+restart: down clean up run
 
 migrate:
 	go run cmd/migrate/main.go -config=.env
