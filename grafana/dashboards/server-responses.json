@@ -1,0 +1,186 @@
+{
+  "annotations":
+    {
+      "list":
+        [
+          {
+            "builtIn": 1,
+            "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+    },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 4,
+  "links": [],
+  "panels":
+    [
+      {
+        "datasource":
+          {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+        "fieldConfig":
+          {
+            "defaults":
+              {
+                "color": { "mode": "palette-classic" },
+                "custom":
+                  {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom":
+                      { "legend": false, "tooltip": false, "viz": false },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": { "type": "linear" },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": { "group": "A", "mode": "none" },
+                    "thresholdsStyle": { "mode": "off" }
+                  },
+                "mappings": [],
+                "thresholds":
+                  {
+                    "mode": "absolute",
+                    "steps":
+                      [{ "color": "green" }, { "color": "red", "value": 80 }]
+                  }
+              },
+            "overrides": []
+          },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "id": 2,
+        "options":
+          {
+            "legend":
+              {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+            "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+          },
+        "pluginVersion": "12.0.0",
+        "targets":
+          [
+            {
+              "adHocFilters": [],
+              "adHocValuesQuery": "",
+              "add_metadata": true,
+              "contextWindowSize": "10",
+              "database": "api_logs",
+              "editorMode": "sql",
+              "extrapolate": true,
+              "format": "time_series",
+              "formattedQuery": "SELECT $timeSeries as t, count() FROM $table WHERE $timeFilter GROUP BY t ORDER BY t",
+              "interval": "",
+              "intervalFactor": 1,
+              "query": "SELECT\r\n    toStartOfMinute(timestamp) as minute,\r\n    if(status_code >= 500, '5xx',\r\n       if(status_code >= 400, '4xx', \r\n          if(status_code >= 200, '2xx', 'other'))) as status_group,\r\n    count(*) as count\r\nFROM api_logs.api_request_logs\r\nGROUP BY minute, status_group\r\nORDER BY minute\r\n",
+              "rawQuery": "/* grafana dashboard=Server responses, user=1 */\nSELECT (intDiv(toUInt32(undefined), 3600) * 3600) * 1000 as t, count() FROM api_logs.api_request_logs WHERE undefined >= toDateTime(1744407434) AND undefined <= toDateTime(1746999434) GROUP BY t ORDER BY t",
+              "refId": "A",
+              "round": "0s",
+              "skip_comments": true,
+              "table": "api_request_logs",
+              "useWindowFuncForMacros": true
+            }
+          ],
+        "title": " Number of 5xx, 4xx, 2xx responses",
+        "type": "timeseries"
+      },
+      {
+        "datasource":
+          {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+        "fieldConfig":
+          {
+            "defaults":
+              {
+                "color": { "mode": "palette-classic" },
+                "custom":
+                  {
+                    "hideFrom":
+                      { "legend": false, "tooltip": false, "viz": false }
+                  },
+                "mappings": []
+              },
+            "overrides": []
+          },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "id": 1,
+        "options":
+          {
+            "displayLabels": [],
+            "legend":
+              {
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+            "pieType": "pie",
+            "reduceOptions":
+              { "calcs": ["lastNotNull"], "fields": "", "values": true },
+            "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+          },
+        "pluginVersion": "12.0.0",
+        "targets":
+          [
+            {
+              "adHocFilters": [],
+              "adHocValuesQuery": "",
+              "add_metadata": true,
+              "contextWindowSize": "10",
+              "datasource":
+                {
+                  "type": "vertamedia-clickhouse-datasource",
+                  "uid": "PDEE91DDB90597936"
+                },
+              "editorMode": "builder",
+              "extrapolate": true,
+              "format": "table",
+              "formattedQuery": "SELECT $timeSeries as t, count() FROM $table WHERE $timeFilter GROUP BY t ORDER BY t",
+              "interval": "",
+              "intervalFactor": 1,
+              "query": "SELECT\r\n    method AS label,\r\n    count(*) AS value\r\nFROM api_logs.api_request_logs\r\nGROUP BY method\r\nORDER BY value DESC",
+              "rawQuery": "/* grafana dashboard=Server responses, user=1 */\nSELECT\r\n    method AS label,\r\n    count(*) AS value\r\nFROM api_logs.api_request_logs\r\nGROUP BY method\r\nORDER BY value DESC",
+              "refId": "A",
+              "round": "0s",
+              "skip_comments": true,
+              "useWindowFuncForMacros": true
+            }
+          ],
+        "title": "Status codes",
+        "type": "piechart"
+      }
+    ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Server responses",
+  "uid": "59ee69a3-4074-4299-9481-ecdb7897d96d",
+  "version": 4
+}

@@ -3,35 +3,79 @@ package clickhouse
 import (
 	"api-tracker/internal/config"
 	"api-tracker/internal/domain/models"
-	"database/sql"
+	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
-	_ "github.com/ClickHouse/clickhouse-go/v2"
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 )
 
 type ClickHouseStorage struct {
-	db *sql.DB
+	db  ch.Conn
+	log *slog.Logger
 }
 
-func NewClickHouseStorage(cfg config.ClickHouseConfig) (*ClickHouseStorage, error) {
-	dsn := fmt.Sprintf("clickhouse://%s?database=%s", cfg.Addr, cfg.DB)
-	db, err := sql.Open("clickhouse", dsn)
+func New(cfg config.ClickHouseConfig, log *slog.Logger) (*ClickHouseStorage, error) {
+	const op = "storage.clickhouse.New"
+	log = log.With("op", op)
+
+	addr := fmt.Sprintf("%s:%d", cfg.Addr, cfg.PortNative)
+
+	conn, err := ch.Open(&ch.Options{
+		Addr: []string{addr},
+		Auth: ch.Auth{
+			Database: cfg.DB,
+			Username: cfg.User,
+			Password: cfg.Password,
+		},
+		DialTimeout:     5 * time.Second,
+		ConnMaxLifetime: cfg.ConnMaxLifetime,
+		MaxOpenConns:    cfg.MaxOpenConns,
+		MaxIdleConns:    cfg.MaxIdleConns,
+		Settings: map[string]interface{}{
+			"send_logs_level": "trace",
+		},
+	})
 	if err != nil {
-		return nil, err
-	}
-	if err = db.Ping(); err != nil {
-		return nil, err
+		log.Error("connection failed", "error", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &ClickHouseStorage{db: db}, nil
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := conn.Ping(ctx); err != nil {
+		log.Error("ping failed", "error", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("successfully connected to clickhouse",
+		"addr", addr,
+		"db", cfg.DB,
+	)
+
+	return &ClickHouseStorage{db: conn, log: log}, nil
 }
 
-func (s *ClickHouseStorage) InsertLog(log models.APIRequestLog) error {
+func (s *ClickHouseStorage) InsertLog(ctx context.Context, log models.APIRequestLog) error {
+	const op = "storage.clickhouse.InsertLog"
+	logger := s.log.With("op", op)
+
 	query := `
-		INSERT INTO requests (timestamp, method, path, status_code, latency_ms, ip, user_agent, service_name)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO api_request_logs (
+			timestamp, 
+			method, 
+			path, 
+			status_code, 
+			latency_ms, 
+			ip, 
+			user_agent, 
+			service_name
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	_, err := s.db.Exec(query,
+
+	start := time.Now()
+	if err := s.db.Exec(ctx, query,
 		log.Timestamp,
 		log.Method,
 		log.Path,
@@ -40,6 +84,28 @@ func (s *ClickHouseStorage) InsertLog(log models.APIRequestLog) error {
 		log.IP,
 		log.UserAgent,
 		log.ServiceName,
+	); err != nil {
+		logger.Error("insert failed",
+			"error", err,
+			"method", log.Method,
+			"path", log.Path,
+			"duration", time.Since(start),
+		)
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	logger.Debug("log inserted",
+		"method", log.Method,
+		"path", log.Path,
+		"status", log.StatusCode,
+		"duration", time.Since(start),
 	)
-	return err
+
+	return nil
+}
+
+func (s *ClickHouseStorage) Close() error {
+	const op = "storage.clickhouse.Close"
+	s.log.With("op", op).Info("closing clickhouse connection")
+	return s.db.Close()
 }

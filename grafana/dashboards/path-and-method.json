@@ -1,0 +1,361 @@
+{
+  "annotations":
+    {
+      "list":
+        [
+          {
+            "builtIn": 1,
+            "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+    },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 5,
+  "links": [],
+  "panels":
+    [
+      {
+        "datasource":
+          {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+        "fieldConfig":
+          {
+            "defaults":
+              {
+                "color": { "mode": "palette-classic" },
+                "custom":
+                  {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "bars",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom":
+                      { "legend": false, "tooltip": false, "viz": false },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": { "type": "linear" },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": { "group": "A", "mode": "none" },
+                    "thresholdsStyle": { "mode": "off" }
+                  },
+                "mappings": [],
+                "thresholds":
+                  {
+                    "mode": "absolute",
+                    "steps":
+                      [{ "color": "green" }, { "color": "red", "value": 80 }]
+                  }
+              },
+            "overrides": []
+          },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "id": 4,
+        "options":
+          {
+            "legend":
+              {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+            "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+          },
+        "pluginVersion": "12.0.0",
+        "targets":
+          [
+            {
+              "adHocFilters": [],
+              "adHocValuesQuery": "",
+              "add_metadata": true,
+              "contextWindowSize": "10",
+              "editorMode": "builder",
+              "extrapolate": true,
+              "format": "time_series",
+              "formattedQuery": "SELECT $timeSeries as t, count() FROM $table WHERE $timeFilter GROUP BY t ORDER BY t",
+              "interval": "",
+              "intervalFactor": 1,
+              "query": "SELECT\r\n    toStartOfHour(timestamp) AS \"Hour\",\r\n    path AS \"Endpoint\",\r\n    count(*) AS \"Request Count\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY \"Hour\", path\r\nORDER BY \"Hour\"",
+              "rawQuery": "/* grafana dashboard=Path and method, user=1 */\nSELECT\r\n    toStartOfHour(timestamp) AS \"Hour\",\r\n    path AS \"Endpoint\",\r\n    count(*) AS \"Request Count\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY \"Hour\", path\r\nORDER BY \"Hour\"",
+              "refId": "A",
+              "round": "0s",
+              "skip_comments": true,
+              "useWindowFuncForMacros": true
+            }
+          ],
+        "title": "Number of requests by hour for different paths",
+        "type": "timeseries"
+      },
+      {
+        "datasource":
+          {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+        "fieldConfig":
+          {
+            "defaults":
+              {
+                "color": { "mode": "palette-classic" },
+                "custom":
+                  {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "fillOpacity": 80,
+                    "gradientMode": "none",
+                    "hideFrom":
+                      { "legend": false, "tooltip": false, "viz": false },
+                    "lineWidth": 1,
+                    "scaleDistribution": { "type": "linear" },
+                    "thresholdsStyle": { "mode": "off" }
+                  },
+                "mappings": [],
+                "thresholds":
+                  {
+                    "mode": "absolute",
+                    "steps":
+                      [{ "color": "green" }, { "color": "red", "value": 80 }]
+                  }
+              },
+            "overrides": []
+          },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "id": 1,
+        "options":
+          {
+            "barRadius": 0,
+            "barWidth": 0.97,
+            "fullHighlight": false,
+            "groupWidth": 0.7,
+            "legend":
+              {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+            "orientation": "auto",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+        "pluginVersion": "12.0.0",
+        "targets":
+          [
+            {
+              "adHocFilters": [],
+              "adHocValuesQuery": "",
+              "add_metadata": true,
+              "contextWindowSize": "10",
+              "database": "api_logs",
+              "datasource":
+                {
+                  "type": "vertamedia-clickhouse-datasource",
+                  "uid": "PDEE91DDB90597936"
+                },
+              "editorMode": "sql",
+              "extrapolate": true,
+              "format": "table",
+              "formattedQuery": "SELECT $timeSeries as t, count() FROM $table WHERE $timeFilter GROUP BY t ORDER BY t",
+              "interval": "",
+              "intervalFactor": 1,
+              "query": "SELECT\r\n    path AS \"Endpoint\",\r\n    count(*) AS \"Request Count\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY path\r\nORDER BY \"Request Count\" DESC",
+              "rawQuery": "/* grafana dashboard=New dashboard, user=1 */\nSELECT\r\n    path AS \"Endpoint\",\r\n    count(*) AS \"Request Count\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY path\r\nORDER BY \"Request Count\" DESC",
+              "refId": "A",
+              "round": "0s",
+              "skip_comments": true,
+              "table": "api_request_logs",
+              "useWindowFuncForMacros": true
+            }
+          ],
+        "title": "Number of endpoints requests",
+        "type": "barchart"
+      },
+      {
+        "datasource":
+          {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+        "fieldConfig":
+          {
+            "defaults":
+              {
+                "color": { "mode": "palette-classic" },
+                "custom":
+                  {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "fillOpacity": 80,
+                    "gradientMode": "none",
+                    "hideFrom":
+                      { "legend": false, "tooltip": false, "viz": false },
+                    "lineWidth": 1,
+                    "scaleDistribution": { "type": "linear" },
+                    "thresholdsStyle": { "mode": "off" }
+                  },
+                "mappings": [],
+                "thresholds":
+                  {
+                    "mode": "absolute",
+                    "steps":
+                      [{ "color": "green" }, { "color": "red", "value": 80 }]
+                  }
+              },
+            "overrides": []
+          },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+        "id": 3,
+        "options":
+          {
+            "barRadius": 0,
+            "barWidth": 0.97,
+            "fullHighlight": false,
+            "groupWidth": 0.7,
+            "legend":
+              {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+            "orientation": "auto",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+        "pluginVersion": "12.0.0",
+        "targets":
+          [
+            {
+              "adHocFilters": [],
+              "adHocValuesQuery": "",
+              "add_metadata": true,
+              "contextWindowSize": "10",
+              "database": "api_logs",
+              "editorMode": "sql",
+              "extrapolate": true,
+              "format": "table",
+              "formattedQuery": "SELECT $timeSeries as t, count() FROM $table WHERE $timeFilter GROUP BY t ORDER BY t",
+              "interval": "",
+              "intervalFactor": 1,
+              "query": "SELECT\r\n    path AS \"Endpoint\",\r\n    avg(latency_ms) AS \"Average Latency (ms)\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY path\r\nORDER BY \"Average Latency (ms)\" DESC",
+              "rawQuery": "/* grafana dashboard=New dashboard, user=1 */\nSELECT\r\n    path AS \"Endpoint\",\r\n    avg(latency_ms) AS \"Average Latency (ms)\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY path\r\nORDER BY \"Average Latency (ms)\" DESC",
+              "refId": "A",
+              "round": "0s",
+              "skip_comments": true,
+              "table": "api_request_logs",
+              "useWindowFuncForMacros": true
+            }
+          ],
+        "title": "Average response time by path",
+        "type": "barchart"
+      },
+      {
+        "datasource":
+          {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+        "fieldConfig":
+          {
+            "defaults":
+              {
+                "color": { "mode": "thresholds" },
+                "custom":
+                  {
+                    "align": "auto",
+                    "cellOptions": { "type": "auto" },
+                    "inspect": false
+                  },
+                "mappings": [],
+                "thresholds":
+                  {
+                    "mode": "absolute",
+                    "steps":
+                      [{ "color": "green" }, { "color": "red", "value": 80 }]
+                  }
+              },
+            "overrides": []
+          },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+        "id": 2,
+        "options":
+          {
+            "cellHeight": "sm",
+            "footer":
+              {
+                "countRows": false,
+                "fields": "",
+                "reducer": ["sum"],
+                "show": false
+              },
+            "showHeader": true
+          },
+        "pluginVersion": "12.0.0",
+        "targets":
+          [
+            {
+              "adHocFilters": [],
+              "adHocValuesQuery": "",
+              "add_metadata": true,
+              "contextWindowSize": "10",
+              "database": "api_logs",
+              "editorMode": "sql",
+              "extrapolate": true,
+              "format": "table",
+              "formattedQuery": "SELECT $timeSeries as t, count() FROM $table WHERE $timeFilter GROUP BY t ORDER BY t",
+              "interval": "",
+              "intervalFactor": 1,
+              "query": "SELECT\r\n    method AS \"Method\",\r\n    status_code AS \"Status\",\r\n    count(*) AS \"Request Count\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY method, status_code\r\nORDER BY \"Request Count\" DESC\r\n",
+              "rawQuery": "/* grafana dashboard=New dashboard, user=1 */\nSELECT\r\n    method AS \"Method\",\r\n    status_code AS \"Status\",\r\n    count(*) AS \"Request Count\"\r\nFROM api_logs.api_request_logs\r\nGROUP BY method, status_code\r\nORDER BY \"Request Count\" DESC",
+              "refId": "A",
+              "round": "0s",
+              "skip_comments": true,
+              "table": "api_request_logs",
+              "useWindowFuncForMacros": true
+            }
+          ],
+        "title": " Distribution by HTTP statuses for different methods",
+        "type": "table"
+      }
+    ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Path and method",
+  "uid": "2a629a92-02a3-427d-9bbb-221ab736789f",
+  "version": 2
+}

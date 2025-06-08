@@ -12,8 +12,8 @@ build:
 	go build -o $(BINARY_NAME) ./cmd
 
 # Запустить только go-приложение
-run: build
-	./$(BINARY_NAME)
+run:
+	CONFIG_PATH=.env go run cmd/main.go
 
 # Запустить docker-сервисы (без go-приложения)
 up:
@@ -36,4 +36,7 @@ clean:
 	rm -f $(BINARY_NAME)
 
 # Полная перезапуск (пересборка всех)
-restart: down clean build up run
+restart: down clean up run
+
+migrate:
+	go run cmd/migrate/main.go -config=.env
